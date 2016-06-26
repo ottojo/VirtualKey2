@@ -15,15 +15,14 @@ public class IPAddress  extends ArrayList<Byte>{
 
     @Override
     public String toString(){
-        /*String result = this.get(this.size() - 1).toString();
-        for(int i = this.size() - 2; i < this.size(); i++){
-            result += "." + this.get(this.size() - i);
-        }*/
         String result = "";
-        for(Byte b:this){
-            result += b.toString() + ".";
+        for(int i = 0; i < this.size(); i++){
+            result += Integer.toString(unsignedToBytes(this.get(this.size() - i - 1))) + ".";
         }
-
-        return result.substring(0, result.length()-2);
+        return result.substring(0, result.length()-1);
     }
+    private static int unsignedToBytes(byte b) {
+        return b & 0xFF;
+    }
+
 }

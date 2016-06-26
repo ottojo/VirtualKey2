@@ -11,11 +11,14 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.android.volley.Cache;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -35,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        queue = Volley.newRequestQueue(this);
         fabUnlock = (FloatingActionButton) findViewById(R.id.fabUnlock);
         fabUnlock.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -75,18 +78,15 @@ public class MainActivity extends AppCompatActivity {
             WifiManager wifiMgr = (WifiManager) getSystemService(WIFI_SERVICE);
             WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
             int localIp = wifiInfo.getIpAddress();
-            Log.d("INT", Integer.toString(localIp));
             byte[] ipBytes = BigInteger.valueOf(localIp).toByteArray();
-            String hexString = Integer.toHexString(localIp);
-            Log.d("hex String", hexString);
-            Log.d("decimal String", toDecimalString(hexString));
-            Log.d("byte Array", ipBytes.toString());
             ip =  new IPAddress(ipBytes);
-
-            Log.d("IP: ", ip.toString());
+            String ipString = ip.toString();
+            Log.d("IP: ", ipString);
+            String ipRange = ipString.substring(0, ipString.lastIndexOf('.'));
+            Log.d("RANGE", ipRange);
             for (int i = 0; i < 256; i++) {
                 Log.d("ESPSEARCH", "starting test for " + i);
-                //testForEsp(ipRange + "." + i);
+                testForEsp(ipRange + "." + i);
             }
         } catch (Exception e){
             //e.printStackTrace();
@@ -96,8 +96,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-    /*void testForEsp(final String ipAddress) {
+    void testForEsp(final String ipAddress) {
         final String url = "http://" + ipAddress + "/testEsp";
         Log.d("ESPSEARCH", "Requesting " + url);
         // Request a string response from the provided URL.
@@ -109,10 +108,10 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("ESPSEARCH", "Response is: " + response);
                         if (response.equals("ESP")) {
                             Log.d("ESPSEARCH", "ESP ON  " + url);
-                            espIp = new InetAddress(ipAddress);
+                            /*espIp = new InetAddress(ipAddress);
                             localIpText.setText(ipAddress);
                             SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
-                            sharedPref.edit().putString("espIp", ipAddress).apply();
+                            sharedPref.edit().putString("espIp", ipAddress).apply();*/
                             queue.cancelAll(new RequestQueue.RequestFilter() {
                                 @Override
                                 public boolean apply(Request<?> request) {
@@ -125,11 +124,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.d("ESPSEARCH", "No response from " + url);
+                Log.d("ESPSEARCH", "Volley Error: " + error.toString());
             }
         });
-
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                200,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         queue.add(stringRequest);
-    }*/
+    }
 
 
     Byte[] toObjects(byte[] bytesPrim) {
