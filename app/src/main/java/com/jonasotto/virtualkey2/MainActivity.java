@@ -1,17 +1,15 @@
 package com.jonasotto.virtualkey2;
 
-import android.graphics.Outline;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
 
-import com.android.volley.Cache;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -21,18 +19,12 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import java.math.BigInteger;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 
 public class MainActivity extends AppCompatActivity {
 
     FloatingActionButton fabUnlock;
     RequestQueue queue;
-    IPAddress ip;
+    IPAddress espIp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,12 +38,12 @@ public class MainActivity extends AppCompatActivity {
                 MainActivity.this.unlock();
             }
         });
+        espIp = currentESPIp();
         discoverEsp();
     }
 
     public void unlock(){
-        //String url = "http://" + espIp.toString() + "/open?pin=" + pinText.getText().toString();
-        String url = "http://example.com";
+        String url = "http://" + espIp.toString() + "/open?pin=" +  "1234";//pinText.getText().toString();
         Log.d("OPENING", "requesting " + url);
 
         // Request a string response from the provided URL.
@@ -60,16 +52,15 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(String response) {
                         // Display the first 500 characters of the response string.
-                        Log.d("RESPONSE", "Response is: " + response);
+                        Log.d("OPENING", "Response is: " + response);
                     }
                 }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.d("RESPONSE", "That didn't work!");
+                Log.d("OPENING", "That didn't work!");
 
             }
         });
-
         queue.add(stringRequest);
     }
 
@@ -79,13 +70,12 @@ public class MainActivity extends AppCompatActivity {
             WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
             int localIp = wifiInfo.getIpAddress();
             byte[] ipBytes = BigInteger.valueOf(localIp).toByteArray();
-            ip =  new IPAddress(ipBytes);
+            IPAddress ip =  new IPAddress(ipBytes);
             String ipString = ip.toString();
-            Log.d("IP: ", ipString);
+            Log.d("Own IP", ipString);
             String ipRange = ipString.substring(0, ipString.lastIndexOf('.'));
             Log.d("RANGE", ipRange);
             for (int i = 0; i < 256; i++) {
-                Log.d("ESPSEARCH", "starting test for " + i);
                 testForEsp(ipRange + "." + i);
             }
         } catch (Exception e){
@@ -93,7 +83,13 @@ public class MainActivity extends AppCompatActivity {
             throw e;
             //Toast.makeText(getApplicationContext(), "You fucked up", Toast.LENGTH_LONG).show();
         }
+    }
 
+    IPAddress currentESPIp()
+    {
+        SharedPreferences sharedPreferences = getPreferences(Context.MODE_PRIVATE);
+        String ipString = sharedPreferences.getString("espIp", "0.0.0.0");
+        return new IPAddress(ipString);
     }
 
     void testForEsp(final String ipAddress) {
@@ -108,10 +104,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("ESPSEARCH", "Response is: " + response);
                         if (response.equals("ESP")) {
                             Log.d("ESPSEARCH", "ESP ON  " + url);
-                            /*espIp = new InetAddress(ipAddress);
-                            localIpText.setText(ipAddress);
-                            SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
-                            sharedPref.edit().putString("espIp", ipAddress).apply();*/
+                            espIp = new IPAddress(ipAddress);
+                            SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+                            sharedPref.edit().putString("espIp", ipAddress).apply();
                             queue.cancelAll(new RequestQueue.RequestFilter() {
                                 @Override
                                 public boolean apply(Request<?> request) {
@@ -124,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onErrorResponse(VolleyError error) {
                 Log.d("ESPSEARCH", "No response from " + url);
-                Log.d("ESPSEARCH", "Volley Error: " + error.toString());
+                Log.d("ESPSEARCH", "Volley Error from " + url + ": " + error.toString());
             }
         });
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
@@ -132,29 +127,5 @@ public class MainActivity extends AppCompatActivity {
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         queue.add(stringRequest);
-    }
-
-
-    Byte[] toObjects(byte[] bytesPrim) {
-        Byte[] bytes = new Byte[bytesPrim.length];
-        for(int i = 0; i < bytesPrim.length; i++){
-            bytes[i] = Byte.valueOf(bytesPrim[i]);
-        }
-        return bytes;
-    }
-
-    String toDecimalString(String hexString){
-        int intArray[] = new int[hexString.length()/2];
-        for(int i = 0; i < hexString.length(); i+=2)
-        {
-            Log.d("toDecimalString", "parsing " + hexString.substring(i, i+2));
-            intArray[i/2] = Integer.decode("0x" +hexString.substring(i, i+2));
-        }
-        String result = "";
-        for(int i:intArray){
-            result += Integer.toString(i) + ".";
-        }
-        return result;
-       // return result.substring(0, result.length()-2);
     }
 }

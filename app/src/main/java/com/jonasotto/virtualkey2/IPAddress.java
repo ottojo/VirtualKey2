@@ -13,6 +13,14 @@ public class IPAddress  extends ArrayList<Byte>{
         }
     }
 
+    public IPAddress(String ipString){
+        String[] elements = ipString.split("[.]");
+        for(int i = 0; i < 4; i++){
+            byte currentByte = (byte) Integer.parseInt(elements[3-i]);
+            this.add(currentByte);
+        }
+    }
+
     @Override
     public String toString(){
         String result = "";
@@ -24,5 +32,6 @@ public class IPAddress  extends ArrayList<Byte>{
     private static int unsignedToBytes(byte b) {
         return b & 0xFF;
     }
+
 
 }
